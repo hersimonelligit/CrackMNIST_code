@@ -1,199 +1,375 @@
-# CrackMNIST - Annotated Digital Image Correlation Displacement Fields from Fatigue Crack Growth Experiments
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18454958.svg)](https://doi.org/10.5281/zenodo.18454958)
-[![DOI](https://zenodo.org/badge/947320360.svg)](https://doi.org/10.5281/zenodo.15013922)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+# Localización de puntas de grieta mediante Deep Learning
 
-## Introduction
+## Descripción del proyecto
 
-Fatigue crack growth (FCG) experiments play a crucial role in materials science and engineering, 
-particularly for the safe design of structures and components. However, conventional FCG 
-experiments are both time-consuming and costly, relying primarily on integral measurement 
-techniques such as the potential drop method to determine crack length.
+Este proyecto utiliza técnicas de **Deep Learning** para localizar la posición de la punta de una grieta (*crack tip*) a partir de campos de desplazamiento mecánico.
 
-Digital Image Correlation (DIC) is a non-contact optical technique that enables full-field 
-displacement measurements during experiments. Accurately identifying crack tip positions from 
-DIC data is essential but challenging due to inherent noise and artifacts.
+El modelo recibe como entrada dos campos de desplazamiento:
 
-Recently, a deep learning-based approach was introduced to automatically detect crack tip 
-positions [1,2]. This method involved manually annotating a single experiment to train a 
-convolutional neural network (CNN). Furthermore, an iterative crack tip correction technique 
-was later developed to enhance detection accuracy [3]. However, this method is not fully 
-automated and requires more time than applying a pre-trained CNN. With the rise of self-driven 
-laboratories generating vast amounts of DIC data [4,5], reliable crack tip detection is essential 
-for efficient and rapid data evaluation.
+- $U_x$: desplazamiento horizontal.
+- $U_y$: desplazamiento vertical.
 
-**References:**
+A partir de esta información, una red neuronal convolucional (**CNN**) debe predecir las coordenadas:
 
-1. **Strohmann T et al. (2021)** Automatic detection of fatigue crack paths using digital image correlation and 
-   convolutional neural networks.
-   _Fatigue and Fracture of Engineering Materials and Structures 44: 1336-1348_
-   [https://doi.org/10.1111/ffe.13433](https://doi.org/10.1111/ffe.13433)
-2. **Melching D et al. (2022)** Explainable machine learning for precise faticue crack tip detection. 
-   _Scientific Reports 12, 9513_ 
-   [https://doi.org/10.1038/s41598-022-13275-1](https://doi.org/10.1038/s41598-022-13275-1)
-3. **Melching D et al. (2024)** An iterative crack tip correction algorithm discovered by physical deep symbolic regression.
-    _International Journal of Fatigue, 187, 108432_
-    [https://doi.org/10.1016/j.ijfatigue.2024.108432](https://doi.org/10.1016/j.ijfatigue.2024.108432)
-4. **Paysan F et al. (2023)** A Robot-Assisted Microscopy System for Digital Image Correlation in Fatigue Crack Growth Testing.
-    _Experimental Mechanics, 63, 975-986_
-    [https://doi.org/10.1007/s11340-023-00964-9](https://doi.org/10.1007/s11340-023-00964-9)
-5. **Strohmann T et al. (2024)** Next generation fatigue crack growth experiments of aerospace materials.
-    _Scientific Reports 14, 14075_
-    [https://doi.org/10.1038/s41598-024-63915-x](https://doi.org/10.1038/s41598-024-63915-x) 
+```text
+(x, y)
+```
 
+correspondientes a la posición de la punta de la grieta.
 
-## Objective
-The objective of this project is to create a diverse, large-scale, and standardized dataset designed for the training 
-and evaluation of deep learning-based crack tip detection and stress intensity factor (SIF) prediction methods. 
-In addition to supporting research and practical applications, the dataset aims to serve an educational purpose by 
-providing a high-quality resource for students and researchers in the field of material science and mechanics.
-
-### DIC data
-The dataset contains DIC data in the form of planar displacement fields ($u_x, u_y$) both measured in $mm$ 
-from eight FCG experiments performed on different materials and specimen geometries. 
-The tested materials (AA2024, AA7475 and AA7010) are aluminum alloys with an average Young's modulus (E) 
-of approximately 70 GPa and a Poisson’s ratio (ν) of 0.33. 
-For details, please refer to the corresponding data sheets.
-
-The applied maximum nominal uniform stress for MT-Specimen is  σ<sub>N</sub> is 47 MPa (sinusoidal loading, constant amplitude). 
-The minimum load can be derived from R=F<sub>min</sub>/F<sub>max</sub>. 
-The expected Stress Intensity Factors K<sub>I</sub> vary approximately between 1 and 40 MPa√m. 
-
-| Experiment       |      Material      | Specimen Type | Thickness [mm] | Orientation |  R  |
-|------------------|:------------------:|:-------------:|:--------------:|:-----------:|:---:|
-| MT160_2024_LT_1  | AA2024<sup>r</sup> |     MT160     |       2        |     LT      | 0.1 |
-| MT160_2024_LT_2  | AA2024<sup>r</sup> |     MT160     |       2        |     LT      | 0.3 |
-| MT160_2024_LT_3  | AA2024<sup>r</sup> |     MT160     |       2        |     LT      | 0.5 |
-| MT160_2024_TL_1  | AA2024<sup>r</sup> |     MT160     |       2        |     TL      | 0.1 |
-| MT160_2024_TL_2  | AA2024<sup>r</sup> |     MT160     |       2        |     TL      | 0.3 |
-| MT160_7475_LT_1  | AA7475<sup>r</sup> |     MT160     |       4        |     LT      | 0.1 |
-| MT160_7475_TL_1  | AA7475<sup>r</sup> |     MT160     |       4        |     TL      | 0.3 |
-| CT75_7010_SL45_1 | AA7010<sup>f</sup> |     CT75      |       12       |    SL45°    | 0.1 |
+El problema se aborda como una tarea de **regresión bidimensional**.
 
 ---
-<sup>r</sup> Rolled Material
-<sup>f</sup> Forged Material
 
-### Data annotation
-Crack tip positions in the DIC data are annotated with the high-fidelity crack tip correction method 
-from [3] (see Figure below).
+# Dataset
 
-![Crack tip annotation](./docs/crack_tip_correction_framework.png)
+El proyecto utiliza el dataset **CrackMNIST**, compuesto por simulaciones de campos de desplazamiento asociados a procesos de propagación de grietas.
 
-The crack tip positions are stored as binary segmentation masks such that the labelled datasets
-can directly be used for training semantic segmentation models.
+Cada muestra contiene:
 
-### Stress Intensity Factors (SIFs)
-In addition to crack tip segmentation masks, the dataset includes corresponding stress intensity factors (SIFs) 
-for each sample. The SIFs consist of three components:
-- **K<sub>I</sub>**: Mode I stress intensity factor (opening mode)
-- **K<sub>II</sub>**: Mode II stress intensity factor (shear mode)  
-- **T**: T-stress (non-singular stress component)
+```text
+(Ux, Uy), máscara
+```
 
-All SIF values are provided in units of MPa√m for K<sub>I</sub> and K<sub>II</sub>, and MPa for T-stress.
-These values enable the dataset to be used for regression tasks, allowing neural networks to predict 
-fracture mechanics parameters directly from displacement fields.
+donde:
 
-### Labelled datasets
-We provide three datasets of different sizes ("S", "M", "L"). 
-The datasets are split into training, validation, and test sets.
-The following table shows the number of samples in each dataset.
+- `Ux` representa el campo de desplazamiento horizontal.
+- `Uy` representa el campo de desplazamiento vertical.
+- `máscara` contiene la información utilizada para determinar la posición de la punta de la grieta.
 
-| Dataset | Training | Validation | Test  |
-|---------|----------|------------|-------|
-| S       | 10048    | 5944       | 5944  |
-| M       | 21640    | 11736      | 11672 |
-| L       | 42056    | 11736      | 16560 |
+Las coordenadas reales de la punta de la grieta se obtienen a partir de la posición del píxel correspondiente en la máscara.
 
-The datasets are provided in three different pixel resolutions ($28 \times 28$, $64 \times 64$, 
-$128 \times 128$) and stored in HDF5 format.
+El dataset se divide en distintos experimentos, utilizados para:
 
-An overview which experiment is included in which dataset for training, validation and testing
-can be found in the file `size_splits.json`.
+- Entrenamiento.
+- Validación.
+- Evaluación final.
 
-### Visualization of labelled data samples
-The following figure shows examples of labelled data samples from the CrackMNIST dataset.
+Esto permite evaluar la capacidad del modelo para generalizar a configuraciones no utilizadas durante el entrenamiento.
 
-![CrackMNIST samples](./docs/crackmnist_samples.png)
+---
 
-The inputs consist of the planar displacement fields ($u_x, u_y$), and the outputs are the binary 
-segmentation masks.
+# Modelo
 
-### Visualization of different pixel resolutions
-The figure below shows the y-displacement field of a DIC sample at different pixel resolutions.
+Se utiliza una **Red Neuronal Convolucional (CNN)** para extraer información espacial de los campos de desplazamiento.
 
-![DIC pixel resolutions](./docs/crackmnist_resolution.png)
+La entrada del modelo tiene la forma:
 
+```text
+(2, H, W)
+```
 
-## Usage
+donde los dos canales corresponden a:
 
-### Installation
+```text
+Canal 1 → Ux
+Canal 2 → Uy
+```
 
-The package can be installed via pip:
+La salida final de la red consiste en dos valores continuos:
+
+```text
+(x_pred, y_pred)
+```
+
+que representan la posición predicha de la punta de la grieta.
+
+---
+
+# Entrenamiento
+
+El problema se trata como una regresión de coordenadas.
+
+Durante el entrenamiento, el modelo aprende a minimizar la diferencia entre las coordenadas reales y las coordenadas predichas.
+
+Para evaluar el error espacial se utiliza la distancia euclídea:
+
+$$
+d = \sqrt{(x_{pred} - x_{real})^2 + (y_{pred} - y_{real})^2}
+$$
+
+Esta métrica representa directamente la distancia, en píxeles, entre la posición predicha y la posición real de la punta de la grieta.
+
+---
+
+# Métricas de evaluación
+
+Para analizar el rendimiento del modelo se calculan diferentes métricas.
+
+## Error absoluto medio
+
+Mide el error promedio entre las coordenadas predichas y las reales.
+
+## RMSE
+
+El **Root Mean Squared Error** penaliza más fuertemente los errores grandes.
+
+## Error euclídeo medio
+
+Representa la distancia promedio entre la punta de grieta real y la predicha.
+
+## Error mediano
+
+Permite analizar el error típico reduciendo la influencia de valores extremos.
+
+## Precisión dentro de un determinado número de píxeles
+
+También se calcula el porcentaje de predicciones que cumplen:
+
+- Error ≤ 1 píxel.
+- Error ≤ 2 píxeles.
+- Error ≤ 5 píxeles.
+
+Estas métricas permiten interpretar de manera más intuitiva la precisión espacial del modelo.
+
+---
+
+# Resultados
+
+Los resultados obtenidos muestran que el modelo es capaz de localizar correctamente la punta de la grieta en la gran mayoría de las muestras.
+
+En los experimentos realizados se obtuvieron aproximadamente los siguientes resultados:
+
+| Métrica | Resultado |
+|---|---:|
+| Error medio | ~0.6 píxeles |
+| Error mediano | 0 píxeles |
+| Predicciones con error ≤ 1 píxel | ~89% |
+| Predicciones con error ≤ 2 píxeles | ~99% |
+| Predicciones con error ≤ 5 píxeles | >99% |
+
+Sin embargo, existen algunas muestras con errores significativamente mayores.
+
+Estos casos son particularmente interesantes, ya que podrían estar relacionados con:
+
+- Configuraciones difíciles para el modelo.
+- Efectos de borde.
+- Ambigüedades en los campos de desplazamiento.
+- Muestras sin un píxel positivo en la máscara.
+- Posibles inconsistencias entre la visualización de los datos y las etiquetas almacenadas.
+
+Por este motivo, además de las métricas globales, se realiza un análisis específico de las predicciones con mayor error.
+
+---
+
+# Análisis de errores
+
+Además de calcular métricas globales, el proyecto analiza cómo se distribuyen espacialmente los errores del modelo.
+
+Se generan diferentes gráficos para estudiar su comportamiento.
+
+## Distribución del error
+
+Se representa un histograma de los errores de localización.
+
+Esto permite observar si:
+
+- La mayoría de las predicciones presentan errores pequeños.
+- Existen errores extremos.
+- La distribución presenta una cola asociada a casos problemáticos.
+
+## Distribución acumulada
+
+Se calcula la distribución acumulada del error para visualizar qué porcentaje de las predicciones se encuentra por debajo de una determinada distancia.
+
+Por ejemplo:
+
+```text
+¿Qué porcentaje de las predicciones tiene un error menor a 1 píxel?
+```
+
+## Errores en las coordenadas
+
+Se analizan por separado:
+
+$$
+\Delta x = x_{pred} - x_{real}
+$$
+
+$$
+\Delta y = y_{pred} - y_{real}
+$$
+
+Esto permite detectar posibles sesgos sistemáticos en alguna dirección.
+
+## Mapa espacial del error
+
+Se analiza el error del modelo en función de la posición real de la punta de la grieta.
+
+Este análisis permite investigar si existen regiones de la imagen donde el modelo presenta un rendimiento peor.
+
+Por ejemplo, puede revelar si las predicciones empeoran:
+
+- Cerca de los bordes.
+- En determinadas posiciones de propagación.
+- En configuraciones poco frecuentes dentro del dataset.
+
+## Mejores y peores predicciones
+
+También se visualizan automáticamente las muestras con:
+
+- Menor error.
+- Mayor error.
+
+Para cada muestra se comparan:
+
+- Los campos de desplazamiento.
+- La posición real.
+- La posición predicha.
+- El error de localización.
+
+Este análisis es especialmente útil para investigar posibles errores de etiquetado o problemas de visualización.
+
+---
+
+# Experimentos con diferentes resoluciones
+
+Además de trabajar con la resolución original, el proyecto permite realizar experimentos con imágenes de diferentes tamaños:
+
+```text
+28 × 28
+64 × 64
+128 × 128
+```
+
+Esto permite estudiar cómo afecta la resolución espacial al rendimiento del modelo.
+
+El objetivo es analizar la relación entre:
+
+- Precisión en la localización.
+- Resolución de los campos.
+- Costo computacional.
+- Capacidad del modelo para identificar patrones locales alrededor de la grieta.
+
+---
+
+# Estructura del proyecto
+
+Una posible organización del repositorio es:
+
+```text
+CrackMNIST-Crack-Tip-Localization/
+│
+├── exp2.ipynb
+├── README.md
+├── requirements.txt
+│
+├── models/
+│   ├── modelo_28x28.pth
+│   ├── modelo_64x64.pth
+│   └── modelo_128x128.pth
+│
+└── resultados/
+    ├── entrenamiento.png
+    ├── histograma_error.png
+    ├── distribucion_acumulada.png
+    ├── mapa_error_espacial.png
+    ├── errores_coordenadas.png
+    ├── predicciones_vs_reales.png
+    └── peores_predicciones.png
+```
+
+---
+
+# Instalación
+
+Primero se debe clonar el repositorio:
+
 ```bash
-pip install crackmnist
-```
-Datasets are uploaded to Zenodo and are downloaded automatically upon usage.
-
-### Getting started
-The datasets can be loaded using the implemented class CrackMNIST as follows
-```python
-from crackmnist import CrackMNIST
-
-# Load dataset for crack tip segmentation
-ct_dataset = CrackMNIST(split="train", pixels=28, size="S", task="crack_tip_segmentation")
-
-# Load dataset for SIF regression
-sif_dataset = CrackMNIST(split="train", pixels=28, size="S", task="SIF_regression")
-```
-Here, the parameters `split`, `pixels`, `size`, and `task` specify the dataset split, 
-pixel resolution, dataset size, and task type, respectively.
-
-Available tasks:
-- `"crack_tip_segmentation"`: Binary segmentation masks for crack tip location (default)
-- `"SIF_regression"`: Stress intensity factors (K<sub>I</sub>, K<sub>II</sub>, T-stress) as regression targets
-
-The folder `examples` contains Jupyter notebooks:
-- `getting_started.ipynb`: Demonstrates the dataset structure and visualization of both crack tip masks and SIF values
-- `plot_samples.ipynb`: Additional examples for visualizing dataset samples
-
-
-## Contributors
-
-Code implementation and data annotation by:
-- Erik Schultheis
-- Ferdinand Dömling
-- David Melching
-
-Experiment conduction and DIC data acquisition by:
-- Florian Paysan
-- Ferdinand Dömling
-- Eric Dietrich
-
-Supervision and conceptualization by:
-- [David Melching](mailto:David.Melching@dlr.de)
-- [Eric Breitbarth](mailto:Eric.Breitbarth@dlr.de)
-
-
-## Citation
-If you use the dataset or code in your research, please cite this GitHub repository:
-
-```bibtex
-@misc{crackmnist,
-  title={CrackMNIST - Annotated Digital Image Correlation Displacement Fields from Fatigue Crack Growth Experiments},
-  author={David Melching and Ferdinand Dömling and Florian Paysan and Erik Schultheis and Eric Dietrich and Eric Breitbarth},
-  journal={GitHub repository},
-  howpublished={\url{https://www.github.com/dlr-wf/crackmnist}},
-  year={2026},
-  note={Version 2.0.0}
-}
+git clone https://github.com/TU_USUARIO/CrackMNIST-Crack-Tip-Localization.git
 ```
 
-## License and Limitations
-The package is developed for research and educational purposes only and must not be used 
-for any production or specification purposes. We do not guarantee in any form 
-for its flawless implementation and execution. However, if you run into errors in the code or 
-find any bugs, feel free to contact us.
+Luego ingresar a la carpeta:
 
-The code is licensed under MIT License (see LICENSE file).
-The datasets are licensed under Creative Commons Attribution 4.0 International License (CC BY 4.0).
+```bash
+cd CrackMNIST-Crack-Tip-Localization
+```
+
+Instalar las dependencias:
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+# Librerías utilizadas
+
+Las principales librerías utilizadas son:
+
+```text
+numpy
+matplotlib
+pandas
+torch
+torchvision
+scikit-learn
+h5py
+```
+
+---
+
+# Uso
+
+El flujo completo del proyecto se encuentra en el notebook:
+
+```text
+exp2.ipynb
+```
+
+El notebook incluye:
+
+1. Carga del dataset CrackMNIST.
+2. Exploración de los campos de desplazamiento.
+3. Obtención de las coordenadas de la punta de la grieta.
+4. Preprocesamiento de los datos.
+5. Definición del modelo CNN.
+6. Entrenamiento.
+7. Validación.
+8. Evaluación del modelo.
+9. Cálculo de métricas.
+10. Análisis estadístico de los errores.
+11. Visualización de las mejores y peores predicciones.
+
+---
+
+# Conclusiones
+
+Los resultados muestran que los campos de desplazamiento contienen información suficiente para localizar con alta precisión la posición de la punta de una grieta.
+
+El modelo obtiene errores muy bajos para la mayoría de las muestras, alcanzando una precisión inferior a un píxel en una gran proporción del conjunto evaluado.
+
+Sin embargo, la existencia de algunos errores grandes muestra que las métricas promedio no son suficientes para caracterizar completamente el comportamiento del modelo.
+
+Por este motivo, el proyecto incluye un análisis detallado de los errores y de las predicciones individuales.
+
+Este análisis permite diferenciar entre posibles:
+
+- Fallos reales del modelo.
+- Configuraciones físicamente más difíciles.
+- Efectos asociados a los límites de la imagen.
+- Problemas o inconsistencias en las etiquetas del dataset.
+
+---
+
+# Posibles mejoras futuras
+
+Algunas posibles extensiones del proyecto son:
+
+- Comparar diferentes arquitecturas de redes neuronales.
+- Entrenar modelos específicamente optimizados para distintas resoluciones.
+- Utilizar técnicas de *data augmentation*.
+- Implementar localización mediante mapas de calor en lugar de regresión directa.
+- Estimar la incertidumbre de las predicciones.
+- Incorporar restricciones físicas durante el entrenamiento.
+- Comparar el modelo con métodos tradicionales de procesamiento de imágenes.
+- Investigar automáticamente muestras potencialmente mal etiquetadas.
+- Analizar la capacidad de generalización entre diferentes experimentos de propagación de grietas.
+
+---
+
+## Autor
+
+**Hernán**
+
+Proyecto orientado a la aplicación de técnicas de **Machine Learning y Deep Learning a problemas de mecánica de fractura y análisis de campos físicos**.
