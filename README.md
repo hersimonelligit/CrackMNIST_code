@@ -367,9 +367,3 @@ Algunas posibles extensiones del proyecto son:
 - Analizar la capacidad de generalización entre diferentes experimentos de propagación de grietas.
 
 ---
-
-## Autor
-
-**Hernán**
-
-Proyecto orientado a la aplicación de técnicas de **Machine Learning y Deep Learning a problemas de mecánica de fractura y análisis de campos físicos**.
